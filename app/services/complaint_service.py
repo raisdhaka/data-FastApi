@@ -1,6 +1,7 @@
 from sqlalchemy.orm import Session
 from app.models.complaint import Complaint
 from app.schemas.complaint import ComplaintCreate
+from typing import List
 
 class ComplaintService:
     @staticmethod
