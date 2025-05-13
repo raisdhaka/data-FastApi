@@ -10,3 +10,7 @@ class UserService:
         db.commit()
         db.refresh(db_user)
         return db_user
+    
+    @staticmethod
+    def get_user_by_id(db: Session, user_id: int) -> User:
+        return db.query(User).filter(User.id == user_id).first()
