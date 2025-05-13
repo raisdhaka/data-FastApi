@@ -1,7 +1,6 @@
 from datetime import date, time, datetime
 from typing import Optional
 from pydantic import BaseModel
-from app.schemas.user import UserResponse
 
 class ComplaintBase(BaseModel):
     complaint_name: str
@@ -19,6 +18,7 @@ class ComplaintBase(BaseModel):
     is_physical_hit: bool
     physical_hit_detail: Optional[str] = None
     supporting_documents: Optional[str] = None
+    user_id: int  # Keep only the ID reference
 
 class ComplaintCreate(ComplaintBase):
     user_id: int
@@ -28,7 +28,11 @@ class ComplaintResponse(ComplaintBase):
     user_id: int
     created_at: datetime
     updated_at: datetime
-    user: UserResponse
+    # user: "UserResponse"  # Forward reference
 
     class Config:
         orm_mode = True
+
+# Resolve forward references after UserResponse is defined
+from app.schemas.user import UserResponse  # Moved to bottom
+ComplaintResponse.update_forward_refs()

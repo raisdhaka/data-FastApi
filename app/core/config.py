@@ -1,6 +1,6 @@
-from pydantic import BaseSettings
+from pydantic_settings import BaseSettings  # Changed import
 
-class Settings(BaseSettings):
+class settings(BaseSettings):
     DATABASE_URL: str
     # ... other settings ...
 

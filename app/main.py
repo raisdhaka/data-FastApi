@@ -1,29 +1,23 @@
 from fastapi import FastAPI
-from pydantic import BaseModel
-from typing import Optional
-from datetime import date, time
+from fastapi.middleware.cors import CORSMiddleware
 
-app = FastAPI()
+from app.routes import users, complaints
+from app.core.config import settings
 
-class FormData(BaseModel):
-    # Step A
-    name: str
-    age: int
-    phone: str
-    email: str
-    area: str
+app = FastAPI(title="Complaint Management System")
 
-    # Step B
-    type: str
-    date: str  # You can also use `date` if your frontend formats correctly
-    time: str  # Likewise, `time` works if properly formatted
-    detail: str
-    second_name: Optional[str]
-    second_age: Optional[int]
-    relation: Optional[str]
+# Configure CORS
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["http://localhost:3000"],  # Add the frontend's origin
+    allow_credentials=True,
+    allow_methods=["*"],  # Allow all HTTP methods
+    allow_headers=["*"],  # Allow all headers
+)
 
-@app.post("/submit-form")
-def submit_form(data: FormData):
-    print("✅ Form received:")
-    print(data.dict())
-    return {"message": "Form submitted successfully", "data": data}
+app.include_router(users.router)
+app.include_router(complaints.router)
+
+@app.get("/")
+def read_root():
+    return {"message": "Welcome to Complaint Management System"}

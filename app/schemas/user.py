@@ -1,7 +1,6 @@
 from datetime import datetime
 from typing import List, Optional
 from pydantic import BaseModel
-from app.schemas.complaint import ComplaintResponse
 
 class UserBase(BaseModel):
     name: str
@@ -17,7 +16,11 @@ class UserResponse(UserBase):
     id: int
     created_at: datetime
     updated_at: datetime
-    complaints: List[ComplaintResponse] = []
+    # complaints: List["ComplaintResponse"] = []  # Forward reference
 
     class Config:
         orm_mode = True
+
+# Resolve forward references after ComplaintResponse is defined
+from app.schemas.complaint import ComplaintResponse  # Moved to bottom
+UserResponse.update_forward_refs()
