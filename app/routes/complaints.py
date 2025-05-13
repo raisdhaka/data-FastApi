@@ -72,3 +72,14 @@ def get_complaint(complaint_id: int, db: Session = Depends(get_db)):
             detail="Complaint not found"
         )
     return complaint
+
+
+@router.get("/", response_model=List[ComplaintResponse])
+def get_all_complaints(db: Session = Depends(get_db)):
+    complaints = ComplaintService.get_all_complaints(db=db)
+    if not complaints:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="No complaints found"
+        )
+    return complaints

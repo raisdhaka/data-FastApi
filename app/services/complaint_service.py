@@ -22,3 +22,7 @@ class ComplaintService:
         return db.query(Complaint)\
                 .filter(Complaint.id == complaint_id)\
                 .first()
+
+    @staticmethod
+    def get_all_complaints(db: Session) -> List[Complaint]:
+        return db.query(Complaint).all()
