@@ -12,7 +12,7 @@ def create_user(user: UserCreate, db: Session = Depends(get_db)):
 
 @router.get("/{user_id}", response_model=UserResponse)
 def get_user(user_id: int, db: Session = Depends(get_db)):
-    user = UserService.get_user_by_id(db=db, user_id=user_id)
+    user = UserService.get_user_by_id(db=db, id=user_id)
     if not user:
         raise HTTPException(
             status_code=404,
