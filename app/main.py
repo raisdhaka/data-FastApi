@@ -18,6 +18,7 @@ app.add_middleware(
 app.include_router(users.router)
 app.include_router(complaints.router)
 
+
 @app.get("/")
 def read_root():
     return {"message": "Welcome to Complaint Management System"}
