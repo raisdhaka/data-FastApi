@@ -7,7 +7,7 @@ class UserBase(BaseModel):
     age: int
     phone: str
     email: Optional[str] = None
-    residential_area: str
+    residential_area: Optional[str] = None
 
 class UserCreate(UserBase):
     username: str
@@ -19,11 +19,14 @@ class LoginCredentials(BaseModel):
 
 class UserResponse(UserBase):
     id: int
-    username: str
-    is_active: bool
-    created_at: datetime
-    updated_at: datetime
-    # complaints: List["ComplaintResponse"] = []
+
+    username: Optional[str] = None
+    email: Optional[str] = None
+    name: Optional[str] = None
+    age: Optional[int] = None
+    phone: Optional[str] = None
+    residential_area: Optional[str] = None
+    
 
     class Config:
         orm_mode = True

@@ -10,6 +10,15 @@ from app import security
 
 router = APIRouter(prefix="/users", tags=["users"])
 
+@router.get("/", response_model=list[UserResponse])
+def get_users(db: Session = Depends(get_db)):
+    users = UserService.get_users(db=db)
+    if not users:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="No users found"
+        )
+    return users
 
 
 @router.post("/", response_model=UserResponse)

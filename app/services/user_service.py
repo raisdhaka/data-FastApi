@@ -2,6 +2,7 @@ from sqlalchemy.orm import Session
 from app.models.user import User
 from app.schemas.user import UserCreate, UserResponse
 from app import security
+from typing import List
 
 
 class UserService:
@@ -34,3 +35,7 @@ class UserService:
     @staticmethod
     def get_user_by_username(db, username: str):
         return db.query(User).filter(User.username == username).first()
+
+    @staticmethod
+    def get_users(db: Session)-> List[User]:
+        return db.query(User).all()
