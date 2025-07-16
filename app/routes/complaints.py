@@ -11,6 +11,7 @@ from app.services.user_service import UserService
 from app.database import get_db
 from typing import List
 from app import security
+from sqlalchemy import text
 
 
 router = APIRouter(
@@ -119,6 +120,19 @@ def get_complaint(complaint_id: int, db: Session = Depends(get_db)):
         )
     return complaint
 
+@router.get("/type_of_incident/statistics")
+def get_complaints_count_by_type_of_incident(db: Session = Depends(get_db)):
+    result = db.execute(
+        text("SELECT type_of_incident, count(*) as count FROM complaints GROUP BY type_of_incident")
+    )
+    incidents = [{"type_of_incident": row[0], "count": row[1]} for row in result]
+    
+    if not incidents:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="No complaints found"
+        )
+    return incidents
 
 @router.get("/", response_model=List[ComplaintResponse])
 def get_all_complaints(db: Session = Depends(get_db)):
