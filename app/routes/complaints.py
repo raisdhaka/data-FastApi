@@ -6,12 +6,18 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 from app.schemas.complaint import ComplaintCreate, ComplaintResponse
 from app.schemas.user import UserCreate, UserResponse
+from app.models.complaint import Complaint
 from app.services.complaint_service import ComplaintService
 from app.services.user_service import UserService
 from app.database import get_db
 from typing import List
 from app import security
 from sqlalchemy import text
+from typing import List, Optional
+from fastapi.encoders import jsonable_encoder
+from pydantic import BaseModel
+from sqlalchemy.orm import joinedload
+
 
 
 router = APIRouter(
@@ -112,12 +118,14 @@ def get_complaints_by_user(user_id: int, db: Session = Depends(get_db)):
 
 @router.get("/{complaint_id}", response_model=ComplaintResponse)
 def get_complaint(complaint_id: int, db: Session = Depends(get_db)):
-    complaint = ComplaintService.get_complaint(db=db, complaint_id=complaint_id)
+    complaint = db.query(Complaint).options(joinedload(Complaint.user)).filter(Complaint.id == complaint_id).first()
+    
     if not complaint:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="Complaint not found"
         )
+    
     return complaint
 
 @router.get("/type_of_incident/statistics")
@@ -134,12 +142,14 @@ def get_complaints_count_by_type_of_incident(db: Session = Depends(get_db)):
         )
     return incidents
 
-@router.get("/", response_model=List[ComplaintResponse])
+@router.get("/", response_model=None)
 def get_all_complaints(db: Session = Depends(get_db)):
-    complaints = ComplaintService.get_all_complaints(db=db)
-    if not complaints:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="No complaints found"
-        )
-    return complaints
+    return db.query(Complaint).options(joinedload(Complaint.user)).all()
+# def get_all_complaints(db: Session = Depends(get_db)):
+#     complaints = ComplaintService.get_all_complaints(db=db)
+#     if not complaints:
+#         raise HTTPException(
+#             status_code=status.HTTP_404_NOT_FOUND,
+#             detail="No complaints found"
+#         )
+#     return complaints

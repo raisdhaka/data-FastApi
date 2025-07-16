@@ -1,6 +1,7 @@
 from datetime import date, time, datetime
 from typing import Optional
 from pydantic import BaseModel
+from app.schemas.user import UserResponse 
 
 class ComplaintBase(BaseModel):
     complaint_name: str
@@ -19,6 +20,8 @@ class ComplaintBase(BaseModel):
     physical_hit_detail: Optional[str] = None
     supporting_documents: Optional[str] = None
     user_id: int  # Keep only the ID reference
+    user: Optional[UserResponse]
+
 
 class ComplaintCreate(ComplaintBase):
     user_id: int
