@@ -104,17 +104,16 @@ def create_complaint_with_user(data: dict, db: Session = Depends(get_db)):
         # Create the complaint
         complaint = ComplaintService.create_complaint(db=db, complaint=ComplaintCreate(**complaint_data))
         
-        # Send email notification
+        # Start email sending in background (non-blocking)
         try:
             sender_email = "support@aamarkatha.com"
             sender_password = "office@123"
             receiver_email = user_data["email"] if user_data.get("email") else "wfddhaka@gmail.com"
-            cc_email = "wfddhaka@gmail.com"  # CC recipient
-
             
             message = MIMEMultipart()
             message["From"] = sender_email
             message["To"] = receiver_email
+            message["Cc"] = "wfddhaka@gmail.com"  # Add CC properly
             message["Subject"] = "Your Complaint Has Been Registered"
             
             body = f"""
@@ -135,17 +134,24 @@ def create_complaint_with_user(data: dict, db: Session = Depends(get_db)):
             """
             
             message.attach(MIMEText(body, "plain"))
-            # all_recipients = [receiver_email] + [cc_email]
-    
-            with smtplib.SMTP_SSL("mail.privateemail.com", 465) as server:
-                # server.login(sender_email, sender_password)
-                # server.sendmail(sender_email, receiver_email, message.as_string())
-                server.starttls()
-                server.login(sender_email, sender_password)
-                server.send_message(message.as_string())
-                
+            
+            # Use a thread to send email without blocking
+            import threading
+            def send_email_async():
+                try:
+                    with smtplib.SMTP_SSL("mail.privateemail.com", 465) as server:
+                        server.login(sender_email, sender_password)
+                        all_recipients = [receiver_email, "wfddhaka@gmail.com"]
+                        server.sendmail(sender_email, all_recipients, message.as_string())
+                except Exception as e:
+                    print(f"Failed to send email: {str(e)}")
+                    # Consider logging this properly
+            
+            # Start the email sending in background
+            threading.Thread(target=send_email_async).start()
+            
         except Exception as e:
-            print(f"Failed to send email: {str(e)}")
+            print(f"Email preparation failed: {str(e)}")
 
         # For security, remove password-related fields before returning
         user.hashed_password = None
