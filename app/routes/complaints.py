@@ -64,11 +64,11 @@ def create_complaint_with_user(data: dict, db: Session = Depends(get_db)):
     }
     
     # Check if email exists
-    if user_data["email"] and UserService.get_user_by_email(db, user_data["email"]):
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Email already registered"
-        )
+    # if user_data["email"] and UserService.get_user_by_email(db, user_data["email"]):
+    #     raise HTTPException(
+    #         status_code=status.HTTP_400_BAD_REQUEST,
+    #         detail="Email already registered"
+    #     )
     
     # Check if username exists
     if UserService.get_user_by_username(db, user_data["username"]):
