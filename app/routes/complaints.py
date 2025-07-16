@@ -106,9 +106,11 @@ def create_complaint_with_user(data: dict, db: Session = Depends(get_db)):
         
         # Send email notification
         try:
-            sender_email = "aamarkathabd@gmail.com"
-            sender_password = "A@mar202%"
+            sender_email = "support@aamarkatha.com"
+            sender_password = "office@123"
             receiver_email = user_data["email"] if user_data.get("email") else "wfddhaka@gmail.com"
+            cc_email = "wfddhaka@gmail.com"  # CC recipient
+
             
             message = MIMEMultipart()
             message["From"] = sender_email
@@ -133,11 +135,11 @@ def create_complaint_with_user(data: dict, db: Session = Depends(get_db)):
             """
             
             message.attach(MIMEText(body, "plain"))
-            
-            with smtplib.SMTP("smtp.gmail.com", 587) as server:
-                server.starttls()
+            all_recipients = [receiver_email] + [cc_email]
+    
+            with smtplib.SMTP_SSL("mail.privateemail.com", 465) as server:
                 server.login(sender_email, sender_password)
-                server.send_message(message)
+                server.sendmail(sender_email, all_recipients, message.as_string())
                 
         except Exception as e:
             print(f"Failed to send email: {str(e)}")
