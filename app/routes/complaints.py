@@ -138,8 +138,11 @@ def create_complaint_with_user(data: dict, db: Session = Depends(get_db)):
             # all_recipients = [receiver_email] + [cc_email]
     
             with smtplib.SMTP_SSL("mail.privateemail.com", 465) as server:
+                # server.login(sender_email, sender_password)
+                # server.sendmail(sender_email, receiver_email, message.as_string())
+                server.starttls()
                 server.login(sender_email, sender_password)
-                server.sendmail(sender_email, receiver_email, message.as_string())
+                server.send_message(message.as_string())
                 
         except Exception as e:
             print(f"Failed to send email: {str(e)}")
