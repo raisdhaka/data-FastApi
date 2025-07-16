@@ -11,7 +11,7 @@ class User(Base):
     id = Column(Integer, primary_key=True, index=True, autoincrement=True)
     # Authentication fields
     username = Column(String(50), unique=True, index=True, nullable=False)
-    email = Column(String(100), unique=True, index=True, nullable=True)  # Make nullable
+    email = Column(String(100), unique=False, index=True, nullable=True)  # Make nullable
     hashed_password = Column(String(255), nullable=False)
     is_active = Column(Boolean, default=True)
     # Profile fields

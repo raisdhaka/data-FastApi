@@ -20,7 +20,7 @@ class ComplaintBase(BaseModel):
     physical_hit_detail: Optional[str] = None
     supporting_documents: Optional[str] = None
     user_id: int  # Keep only the ID reference
-    user: Optional[UserResponse]
+    
 
 
 class ComplaintCreate(ComplaintBase):
@@ -32,6 +32,7 @@ class ComplaintResponse(ComplaintBase):
     created_at: datetime
     updated_at: datetime
     # user: "UserResponse"  # Forward reference
+    user: Optional[UserResponse]
 
     class Config:
         orm_mode = True

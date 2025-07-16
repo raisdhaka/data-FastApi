@@ -18,6 +18,9 @@ from fastapi.encoders import jsonable_encoder
 from pydantic import BaseModel
 from sqlalchemy.orm import joinedload
 
+import smtplib
+from email.mime.text import MIMEText
+from email.mime.multipart import MIMEMultipart
 
 
 router = APIRouter(
@@ -77,7 +80,7 @@ def create_complaint_with_user(data: dict, db: Session = Depends(get_db)):
     # Create the user
     user = UserService.create_user(db=db, user=UserCreate(**user_data))
     
-    # Extract complaint-related data
+    # Extract complaint-related data - ensure field names match ComplaintCreate schema
     complaint_data = {
         "complaint_name": data["complaint_name"],
         "complaint_age": data["complaint_age"],
@@ -85,27 +88,74 @@ def create_complaint_with_user(data: dict, db: Session = Depends(get_db)):
         "type_of_incident": data["type_of_incident"],
         "date": data["date"],
         "time": data["time"],
-        "address": data["area_of_complain"],
+        "address": data.get("address", ""),
         "detail": data["detail"],
         "criminal_name": data["criminal_name"],
         "criminal_age": data["criminal_age"],
         "criminal_gender": data["criminal_gender"],
         "relation": data["relation"],
         "is_physical_hit": data["is_physical_hit"],
-        "physical_hit_detail": data["physical_hit_detail"],
-        "supporting_documents": data["supporting_documents"],
-        "user_id": user.id  # Associate the complaint with the created user
+        "physical_hit_detail": data.get("physical_hit_detail", ""),
+        "supporting_documents": data.get("supporting_documents", ""),
+        "user_id": user.id  # Make sure this matches the field name in ComplaintCreate
     }
     
-    # Create the complaint
-    complaint = ComplaintService.create_complaint(db=db, complaint=ComplaintCreate(**complaint_data))
-    
-    # For security, remove password-related fields before returning
-    user.hashed_password = None
-    complaint.user = user
-    
-    return complaint
+    try:
+        # Create the complaint
+        complaint = ComplaintService.create_complaint(db=db, complaint=ComplaintCreate(**complaint_data))
+        
+        # Send email notification
+        try:
+            sender_email = "aamarkathabd@gmail.com"
+            sender_password = "A@mar202%"
+            receiver_email = user_data["email"] if user_data.get("email") else "wfddhaka@gmail.com"
+            
+            message = MIMEMultipart()
+            message["From"] = sender_email
+            message["To"] = receiver_email
+            message["Subject"] = "Your Complaint Has Been Registered"
+            
+            body = f"""
+            Dear {user_data['name']},
+            
+            Your complaint has been successfully registered with the following details:
+            
+            Complaint ID: {complaint.id}
+            Type of Incident: {complaint_data['type_of_incident']}
+            Date: {complaint_data['date']}
+            Time: {complaint_data['time']}
+            Details: {complaint_data['detail']}
+            
+            We will review your complaint and get back to you soon.
+            
+            Thank you,
+            Aamarkatha Team
+            """
+            
+            message.attach(MIMEText(body, "plain"))
+            
+            with smtplib.SMTP("smtp.gmail.com", 587) as server:
+                server.starttls()
+                server.login(sender_email, sender_password)
+                server.send_message(message)
+                
+        except Exception as e:
+            print(f"Failed to send email: {str(e)}")
 
+        # For security, remove password-related fields before returning
+        user.hashed_password = None
+        complaint.user = user
+        
+        return complaint
+        
+    except Exception as e:
+        # If complaint creation fails, rollback user creation
+        db.delete(user)
+        db.commit()
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"Failed to create complaint: {str(e)}"
+        )
 @router.get("/user/{user_id}", response_model=List[ComplaintResponse])
 def get_complaints_by_user(user_id: int, db: Session = Depends(get_db)):
     complaints = ComplaintService.get_complaints_by_user(db=db, user_id=user_id)
