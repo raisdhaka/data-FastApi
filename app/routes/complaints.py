@@ -241,7 +241,41 @@ def get_complaint(complaint_id: int, db: Session = Depends(get_db)):
             detail="Complaint not found"
         )
     
-    return complaint
+    response_data = {
+        "id": complaint.id,
+        "complaint_name": complaint.complaint_name,
+        "complaint_age": complaint.complaint_age,
+        "area_of_complain": complaint.area_of_complain,
+        "type_of_incident": complaint.type_of_incident,
+        "date": complaint.date,
+        "time": complaint.time,
+        "address": complaint.address,
+        "detail": complaint.detail,
+        "criminal_name": complaint.criminal_name,
+        "criminal_age": complaint.criminal_age,
+        "criminal_gender": complaint.criminal_gender,
+        "relation": complaint.relation,
+        "is_physical_hit": complaint.is_physical_hit,
+        "physical_hit_detail": complaint.physical_hit_detail,
+        "supporting_documents": complaint.supporting_documents,
+        "user_id": complaint.user_id,
+        "created_at": complaint.created_at,
+        "updated_at": complaint.updated_at,
+        # Include minimal user info without complaints
+        "user": {
+            "id": complaint.user.id,
+            "username": complaint.user.username,
+            "email": complaint.user.email,
+            "name": complaint.user.name,
+            "age": complaint.user.age,
+            "phone": complaint.user.phone,
+            "residential_area": complaint.user.residential_area,
+            "role": complaint.user.role
+            # Don't include complaints here to avoid recursion
+        } if complaint.user else None
+    }
+    
+    return ComplaintResponse(**response_data)
 
 @router.get("/type_of_incident/statistics")
 def get_complaints_count_by_type_of_incident(db: Session = Depends(get_db)):
