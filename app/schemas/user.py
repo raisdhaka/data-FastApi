@@ -19,9 +19,9 @@ class LoginCredentials(BaseModel):
     username: str
     password: str
 
+
 class UserResponse(UserBase):
     id: int
-
     username: Optional[str] = None
     email: Optional[str] = None
     name: Optional[str] = None
@@ -29,12 +29,10 @@ class UserResponse(UserBase):
     phone: Optional[str] = None
     residential_area: Optional[str] = None
     role: Optional[str] = "user"
-    complaints: Optional[List["ComplaintResponse"]] = None  # Add this line
+    complaints: Optional[List["ComplaintResponse"]] = None
     
-
     class Config:
-        # orm_mode = True
-        from_attributes = True  # This replaces orm_mode=True in Pydantic v2
+        from_attributes = True        
 
 
 class Token(BaseModel):

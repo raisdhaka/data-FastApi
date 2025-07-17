@@ -18,7 +18,17 @@ def get_users(db: Session = Depends(get_db)):
             status_code=status.HTTP_404_NOT_FOUND,
             detail="No users found"
         )
-    return users
+    return [UserResponse(
+        id=user.id,
+        username=user.username,
+        email=user.email,
+        name=user.name,
+        age=user.age,
+        phone=user.phone,
+        residential_area=user.residential_area,
+        role=user.role,
+        complaints=None  # or [] if you want empty list
+    ) for user in users]
 
 
 @router.post("/", response_model=UserResponse)
