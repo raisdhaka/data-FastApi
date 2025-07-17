@@ -321,7 +321,7 @@ def get_current_user_with_complaints(
             headers={"WWW-Authenticate": "Bearer"},
         )
     
-    # Get the user with complaints using joinedload
+    # Get the user with complaints
     user = db.query(User).options(joinedload(User.complaints)).filter(User.username == token_data.username).first()
     
     if not user:
@@ -330,19 +330,7 @@ def get_current_user_with_complaints(
             detail="User not found"
         )
     
-    # Create a minimal user response for the complaints
-    user_minimal = {
-        "id": user.id,
-        "username": user.username,
-        "email": user.email,
-        "name": user.name,
-        "age": user.age,
-        "phone": user.phone,
-        "residential_area": user.residential_area,
-        "role": user.role
-    }
-    
-    # Convert complaints to ComplaintResponse objects with user data
+    # Convert complaints to include all required fields
     complaint_responses = []
     for c in user.complaints:
         complaint_dict = {
@@ -360,26 +348,27 @@ def get_current_user_with_complaints(
             "criminal_gender": c.criminal_gender,
             "relation": c.relation,
             "is_physical_hit": c.is_physical_hit,
-            "physical_hit_detail": c.physical_hit_detail,
-            "supporting_documents": c.supporting_documents,
+            "physical_hit_detail": c.physical_hit_detail or "",
+            "supporting_documents": c.supporting_documents or "",
             "user_id": c.user_id,
             "created_at": c.created_at,
             "updated_at": c.updated_at,
-            "user": user_minimal  # Include the user data
+            # Explicitly set user to None to avoid recursion
+            "user": None
         }
         complaint_responses.append(ComplaintResponse(**complaint_dict))
     
     # Create the user response
-    user_response = UserResponse(
-        id=user.id,
-        username=user.username,
-        email=user.email,
-        name=user.name,
-        age=user.age,
-        phone=user.phone,
-        residential_area=user.residential_area,
-        role=user.role,
-        complaints=complaint_responses
-    )
+    user_response = {
+        "id": user.id,
+        "username": user.username,
+        "email": user.email,
+        "name": user.name,
+        "age": user.age,
+        "phone": user.phone,
+        "residential_area": user.residential_area,
+        "role": user.role,
+        "complaints": complaint_responses
+    }
     
-    return user_response
+    return UserResponse(**user_response)

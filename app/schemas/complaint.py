@@ -32,10 +32,10 @@ class ComplaintResponse(ComplaintBase):
     created_at: datetime
     updated_at: datetime
     # user: "UserResponse"  # Forward reference
-    user: Optional[UserResponse]
+    user: Optional["UserResponse"] = None  # Make this optional
 
     class Config:
-        orm_mode = True
+        from_attributes = True
 
 # Resolve forward references after UserResponse is defined
 from app.schemas.user import UserResponse  # Moved to bottom
