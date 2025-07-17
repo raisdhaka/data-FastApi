@@ -66,6 +66,7 @@ def login(
     db: Session = Depends(get_db)
 ):
     user = UserService.get_user_by_username(db, credentials.username)
+    print(f"Attempting login for user: {user}. Username: {credentials.username}, Password: {credentials.password}, role: {user.role if user else 'N/A'} ")
     
     if not user or not security.verify_password(credentials.password, user.hashed_password):
         raise HTTPException(
@@ -77,7 +78,7 @@ def login(
     access_token = security.create_access_token(
         data={"sub": user.username}
     )
-    return {"access_token": access_token, "user":user.username, "token_type": "bearer"}
+    return {"access_token": access_token, "user_role": user.role,  "user": user.username,  "token_type": "bearer"}
 
 # Logout (client-side implementation)
 @router.post("/logout")

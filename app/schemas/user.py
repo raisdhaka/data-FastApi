@@ -8,10 +8,12 @@ class UserBase(BaseModel):
     phone: str
     email: Optional[str] = None
     residential_area: Optional[str] = None
+    role: Optional[str] = "user"
 
 class UserCreate(UserBase):
     username: str
     password: str  # Plaintext password for registration
+
 
 class LoginCredentials(BaseModel):
     username: str
@@ -26,15 +28,21 @@ class UserResponse(UserBase):
     age: Optional[int] = None
     phone: Optional[str] = None
     residential_area: Optional[str] = None
+    role: Optional[str] = "user"
+    complaints: Optional[List["ComplaintResponse"]] = None  # Add this line
     
 
     class Config:
-        orm_mode = True
+        # orm_mode = True
+        from_attributes = True  # This replaces orm_mode=True in Pydantic v2
 
 
 class Token(BaseModel):
     access_token: str
     token_type: str
+    user_role: str
+    user: str
+    
 
 # Resolve forward references after ComplaintResponse is defined
 from app.schemas.complaint import ComplaintResponse  # Moved to bottom

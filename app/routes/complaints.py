@@ -7,6 +7,7 @@ from sqlalchemy.orm import Session
 from app.schemas.complaint import ComplaintCreate, ComplaintResponse
 from app.schemas.user import UserCreate, UserResponse
 from app.models.complaint import Complaint
+from app.models.user import User
 from app.services.complaint_service import ComplaintService
 from app.services.user_service import UserService
 from app.database import get_db
@@ -23,20 +24,32 @@ from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
 
 
+from fastapi.security import OAuth2PasswordBearer
+# from app.security import TokenData
+
+
 router = APIRouter(
     prefix="/complaints",
     tags=["complaints"]
 )
 
-def generate_username(name: str) -> str:
-    """Generate username from name by replacing spaces with hyphens"""
+def generate_username(name: str, db: Session) -> str:
+    """Generate unique username from name by replacing spaces with hyphens"""
     # Remove special characters and replace spaces with hyphens
-    username = re.sub(r'[^a-zA-Z0-9 ]', '', name).strip()
-    username = re.sub(r'\s+', '-', username).lower()
+    base_username = re.sub(r'[^a-zA-Z0-9 ]', '', name).strip()
+    base_username = re.sub(r'\s+', '-', base_username).lower()
     
     # Ensure username is not empty
-    if not username:
-        username = "user" + ''.join(secrets.choice(string.digits) for _ in range(4))
+    if not base_username:
+        base_username = "user"
+    
+    username = base_username
+    counter = 1
+    
+    # Check if username exists and increment counter until we find a unique one
+    while UserService.get_user_by_username(db, username):
+        username = f"{base_username}-{counter}"
+        counter += 1
     
     return username
 
@@ -49,7 +62,7 @@ def generate_password(email: str, phone: str) -> str:
 @router.post("/", response_model=ComplaintResponse, status_code=status.HTTP_201_CREATED)
 def create_complaint_with_user(data: dict, db: Session = Depends(get_db)):
     # Generate username and password
-    username = generate_username(data["name"])
+    username = generate_username(data["name"], db)  # Pass db session here
     password = generate_password(data.get("email"), data["mobile"])
     
     # Extract user-related data
@@ -105,6 +118,7 @@ def create_complaint_with_user(data: dict, db: Session = Depends(get_db)):
         complaint = ComplaintService.create_complaint(db=db, complaint=ComplaintCreate(**complaint_data))
         
         # Start email sending in background (non-blocking)
+        
         try:
             sender_email = "support@aamarkatha.com"
             sender_password = "office@123"
@@ -126,6 +140,12 @@ def create_complaint_with_user(data: dict, db: Session = Depends(get_db)):
             Date: {complaint_data['date']}
             Time: {complaint_data['time']}
             Details: {complaint_data['detail']}
+
+            For login, pls use the following credentials:
+            Username: {user_data['username']}
+            Password: {user_data['password']}
+
+            Login UrL: https://aamarkatha.com/login
             
             We will review your complaint and get back to you soon.
             
@@ -155,9 +175,42 @@ def create_complaint_with_user(data: dict, db: Session = Depends(get_db)):
 
         # For security, remove password-related fields before returning
         user.hashed_password = None
-        complaint.user = user
+        # complaint.user = user
         
-        return complaint
+        response_data = {
+            "id": complaint.id,
+            "complaint_name": complaint.complaint_name,
+            "complaint_age": complaint.complaint_age,
+            "area_of_complain": complaint.area_of_complain,
+            "type_of_incident": complaint.type_of_incident,
+            "date": complaint.date,
+            "time": complaint.time,
+            "address": complaint.address,
+            "detail": complaint.detail,
+            "criminal_name": complaint.criminal_name,
+            "criminal_age": complaint.criminal_age,
+            "criminal_gender": complaint.criminal_gender,
+            "relation": complaint.relation,
+            "is_physical_hit": complaint.is_physical_hit,
+            "physical_hit_detail": complaint.physical_hit_detail,
+            "supporting_documents": complaint.supporting_documents,
+            "user_id": complaint.user_id,
+            "created_at": complaint.created_at,
+            "updated_at": complaint.updated_at,
+            # Include minimal user info without complaints
+            "user": {
+                "id": user.id,
+                "username": user.username,
+                "email": user.email,
+                "name": user.name,
+                "age": user.age,
+                "phone": user.phone,
+                "residential_area": user.residential_area,
+                "role": user.role
+            }
+        }
+
+        return ComplaintResponse(**response_data)
         
     except Exception as e:
         # If complaint creation fails, rollback user creation
@@ -167,6 +220,7 @@ def create_complaint_with_user(data: dict, db: Session = Depends(get_db)):
             status_code=status.HTTP_400_BAD_REQUEST,
             detail=f"Failed to create complaint: {str(e)}"
         )
+
 @router.get("/user/{user_id}", response_model=List[ComplaintResponse])
 def get_complaints_by_user(user_id: int, db: Session = Depends(get_db)):
     complaints = ComplaintService.get_complaints_by_user(db=db, user_id=user_id)
@@ -214,3 +268,84 @@ def get_all_complaints(db: Session = Depends(get_db)):
 #             detail="No complaints found"
 #         )
 #     return complaints
+
+
+# Add this after the router initialization
+oauth2_scheme = OAuth2PasswordBearer(tokenUrl="token")
+
+@router.get("/user-me/me", response_model=UserResponse)
+def get_current_user_with_complaints(
+    token: str = Depends(oauth2_scheme), 
+    db: Session = Depends(get_db)
+):
+    # Verify and decode the token
+    token_data = security.verify_token(token)
+    if not token_data:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Invalid authentication credentials",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
+    
+    # Get the user with complaints using joinedload
+    user = db.query(User).options(joinedload(User.complaints)).filter(User.username == token_data.username).first()
+    
+    if not user:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="User not found"
+        )
+    
+    # Create a minimal user response for the complaints
+    user_minimal = {
+        "id": user.id,
+        "username": user.username,
+        "email": user.email,
+        "name": user.name,
+        "age": user.age,
+        "phone": user.phone,
+        "residential_area": user.residential_area,
+        "role": user.role
+    }
+    
+    # Convert complaints to ComplaintResponse objects with user data
+    complaint_responses = []
+    for c in user.complaints:
+        complaint_dict = {
+            "id": c.id,
+            "complaint_name": c.complaint_name,
+            "complaint_age": c.complaint_age,
+            "area_of_complain": c.area_of_complain,
+            "type_of_incident": c.type_of_incident,
+            "date": c.date,
+            "time": c.time,
+            "address": c.address,
+            "detail": c.detail,
+            "criminal_name": c.criminal_name,
+            "criminal_age": c.criminal_age,
+            "criminal_gender": c.criminal_gender,
+            "relation": c.relation,
+            "is_physical_hit": c.is_physical_hit,
+            "physical_hit_detail": c.physical_hit_detail,
+            "supporting_documents": c.supporting_documents,
+            "user_id": c.user_id,
+            "created_at": c.created_at,
+            "updated_at": c.updated_at,
+            "user": user_minimal  # Include the user data
+        }
+        complaint_responses.append(ComplaintResponse(**complaint_dict))
+    
+    # Create the user response
+    user_response = UserResponse(
+        id=user.id,
+        username=user.username,
+        email=user.email,
+        name=user.name,
+        age=user.age,
+        phone=user.phone,
+        residential_area=user.residential_area,
+        role=user.role,
+        complaints=complaint_responses
+    )
+    
+    return user_response

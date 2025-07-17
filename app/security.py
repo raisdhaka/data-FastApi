@@ -3,6 +3,9 @@ import os
 from jose import jwt, JWTError
 from passlib.context import CryptContext
 from datetime import datetime, timedelta
+from pydantic import BaseModel
+from typing import Optional
+from fastapi.security import OAuth2PasswordBearer
 
 # Configuration
 SECRET_KEY = "vL2iS0uJK3kh3j8E8_MhXJzA_y1CFr8J9gmXxQ4uQBo"
@@ -29,3 +32,16 @@ def decode_token(token: str) -> dict:
         return jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
     except JWTError:
         raise JWTError("Invalid token")
+    
+class TokenData(BaseModel):
+    username: Optional[str] = None
+
+def verify_token(token: str) -> TokenData:
+    try:
+        payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
+        username: str = payload.get("sub")
+        if username is None:
+            return None
+        return TokenData(username=username)
+    except JWTError:
+        return None

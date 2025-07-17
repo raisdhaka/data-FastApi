@@ -19,6 +19,8 @@ class User(Base):
     age = Column(Integer, nullable=False)
     phone = Column(String(20), nullable=False)
     residential_area = Column(String(100), nullable=False)
+    # Additional
+    role= Column(String(20), default="user")  # Default role is 'user'
     # Timestamps
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())
