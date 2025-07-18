@@ -120,51 +120,58 @@ def create_complaint_with_user(data: dict, db: Session = Depends(get_db)):
         # Start email sending in background (non-blocking)
         
         try:
-            sender_email = "support@aamarkatha.com"
-            sender_password = "office@123"
             receiver_email = user_data["email"] if user_data.get("email") else "wfddhaka@gmail.com"
             
-            message = MIMEMultipart()
-            message["From"] = sender_email
-            message["To"] = receiver_email
-            message["Cc"] = "wfddhaka@gmail.com"  # Add CC properly
-            message["Subject"] = "Your Complaint Has Been Registered"
-            
-            body = f"""
-            Dear {user_data['name']},
-            
-            Your complaint has been successfully registered with the following details:
-            
-            Complaint ID: {complaint.id}
-            Type of Incident: {complaint_data['type_of_incident']}
-            Date: {complaint_data['date']}
-            Time: {complaint_data['time']}
-            Details: {complaint_data['detail']}
+            email_data = {
+                "email": receiver_email,
+                "subject": "Your Complaint Has Been Registered",
+                "message": f"""
+                        Dear {user_data['name']},
 
-            For login, pls use the following credentials:
-            Username: {user_data['username']}
-            Password: {user_data['password']}
+                        Your complaint has been successfully registered with the following details:
 
-            Login UrL: https://aamarkatha.com/login
-            
-            We will review your complaint and get back to you soon.
-            
-            Thank you,
-            Aamarkatha Team
-            """
-            
-            message.attach(MIMEText(body, "plain"))
-            
+                        Complaint ID: {complaint.id}
+                        Type of Incident: {complaint_data['type_of_incident']}
+                        Date: {complaint_data['date']}
+                        Time: {complaint_data['time']}
+                        Details: {complaint_data['detail']}
+
+                        For login, pls use the following credentials:
+                        Username: {user_data['username']}
+                        Password: {user_data['password']}
+
+                        Login UrL: https://aamarkatha.com/login
+
+                        We will review your complaint and get back to you soon.
+
+                        Thank you,
+                        Aamarkatha Team
+                        """
+            }
+
             # Use a thread to send email without blocking
             import threading
+            import requests
+            import json
+
             def send_email_async():
                 try:
-                    with smtplib.SMTP_SSL("mail.privateemail.com", 465) as server:
-                        server.login(sender_email, sender_password)
-                        all_recipients = [receiver_email, "wfddhaka@gmail.com"]
-                        server.sendmail(sender_email, all_recipients, message.as_string())
+                    response = requests.post(
+                        'https://api.chatwufa.com/send-email',
+                        headers={
+                            'accept': 'application/json',
+                            'Content-Type': 'application/json'
+                        },
+                        data=json.dumps(email_data)
+                    )
+
+                    
+                    if response.status_code != 200:
+                        print(f"Failed to send email via API. Status code: {response.status_code}, Response: {response.text}")
+                    else:
+                        print("Email sent successfully via API")
                 except Exception as e:
-                    print(f"Failed to send email: {str(e)}")
+                    print(f"Failed to send email via API: {str(e)}")
                     # Consider logging this properly
             
             # Start the email sending in background
